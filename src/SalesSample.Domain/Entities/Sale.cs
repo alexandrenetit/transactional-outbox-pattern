@@ -31,7 +31,7 @@ public class Sale : AggregateRoot
     public Customer Customer { get; private set; } = null!;
     public Branch Branch { get; private set; } = null!;
     public SaleStatus Status { get; private set; }
-    public IReadOnlyCollection<SaleItem> ITems => _items.AsReadOnly();
+    public IReadOnlyCollection<SaleItem> Items => _items.AsReadOnly();
 
     public Money TotalAmount
     {

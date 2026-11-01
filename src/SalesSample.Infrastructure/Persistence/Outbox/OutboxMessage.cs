@@ -1,9 +1,9 @@
-namespace SalesSample.Infrastructure.Persistence.Outbox;
+﻿namespace SalesSample.Infrastructure.Persistence.Outbox;
 
 public sealed class OutboxMessage
 {
-
     private OutboxMessage() { } // EF
+
     public OutboxMessage(Guid id, string type, string payload, DateTime occurredOn)
     {
         Id = id;

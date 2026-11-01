@@ -4,5 +4,5 @@ namespace SalesSample.Domain.Repositories;
 
 public interface ICustomerRepository
 {
-    Task<Customer?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task<Customer?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 }
