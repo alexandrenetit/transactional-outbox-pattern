@@ -1,7 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Confluent.Kafka;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SalesSample.Domain.Repositories;
+using SalesSample.Infrastructure.Messaging;
 using SalesSample.Infrastructure.Persistence;
 using SalesSample.Infrastructure.Persistence.Repositories;
 
@@ -20,6 +22,20 @@ public static class DependencyInjection
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IBranchRepository, BranchRepository>();
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<SalesDbContext>());
+        
+        // kafka
+        services.AddSingleton<IProducer<string, string>>(sp =>
+        {
+            var config = new ProducerConfig
+            {
+                BootstrapServers = configuration["Kafka:BootstrapServers"]
+            };
+
+            return new ProducerBuilder<string, string>(config).Build();
+        });
+        
+        services.AddSingleton<IEventPublisher, KafkaEventPublisher>();
+        services.AddHostedService<OutboxPublisherWorker>();
 
         return services;
     }

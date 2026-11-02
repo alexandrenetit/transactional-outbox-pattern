@@ -13,13 +13,17 @@ public sealed class SaleService : ISaleService
         _activeBranch = activeBranch;
     }
 
-    public Sale CreateSale(Customer customer, Branch branch, string saleNumber,
+    public Sale CreateSale(Customer customer, Branch branch, string? saleNumber,
         IEnumerable<(Product product, int quantity)> items)
     {
         if (!_activeBranch.IsSatisfiedBy(branch))
-            throw new AppDomainUnloadedException("Branch is not active.");
+            throw new DomainException("Branch is not active.");
 
-        var sale = new Sale(customer, branch, saleNumber);
+        var number = string.IsNullOrWhiteSpace(saleNumber)
+            ? $"SALE-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}"
+            : saleNumber;
+
+        var sale = new Sale(customer, branch, number);
 
         foreach (var (product, quantity) in items)
             sale.AddItem(product, quantity);
