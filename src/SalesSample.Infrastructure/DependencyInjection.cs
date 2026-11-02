@@ -36,6 +36,20 @@ public static class DependencyInjection
         
         services.AddSingleton<IEventPublisher, KafkaEventPublisher>();
         services.AddHostedService<OutboxPublisherWorker>();
+        
+        services.AddSingleton<IConsumer<string, string>>(sp =>
+        {
+            var config = new ConsumerConfig
+            {
+                BootstrapServers = configuration["Kafka:BootstrapServers"],
+                GroupId = "salessample-consumer",        // grupo de consumidores
+                AutoOffsetReset = AutoOffsetReset.Earliest, // sem offset salvo → começa do início
+                EnableAutoCommit = false                 // commit manual (após processar)
+            };
+            return new ConsumerBuilder<string, string>(config).Build();
+        });
+
+        services.AddHostedService<KafkaConsumer>();
 
         return services;
     }

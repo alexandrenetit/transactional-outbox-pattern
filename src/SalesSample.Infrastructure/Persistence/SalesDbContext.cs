@@ -4,6 +4,7 @@ using SalesSample.Domain.Common;
 using SalesSample.Domain.Entities;
 using SalesSample.Infrastructure.Persistence.Outbox;
 using SalesSample.Domain.Repositories;
+using SalesSample.Infrastructure.Persistence.Inbox;   
 
 namespace SalesSample.Infrastructure.Persistence;
 
@@ -17,6 +18,7 @@ public sealed class SalesDbContext : DbContext, IUnitOfWork
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();  
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

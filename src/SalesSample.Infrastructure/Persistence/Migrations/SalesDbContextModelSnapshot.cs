@@ -18,7 +18,7 @@ namespace SalesSample.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.14")
+                .HasAnnotation("ProductVersion", "10.0.4")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -168,6 +168,20 @@ namespace SalesSample.Infrastructure.Persistence.Migrations
                     b.HasIndex("SaleId");
 
                     b.ToTable("SaleItems", (string)null);
+                });
+
+            modelBuilder.Entity("SalesSample.Infrastructure.Persistence.Inbox.InboxMessage", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ProcessedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("EventId");
+
+                    b.ToTable("InboxMessages", (string)null);
                 });
 
             modelBuilder.Entity("SalesSample.Infrastructure.Persistence.Outbox.OutboxMessage", b =>
