@@ -24,7 +24,7 @@ public sealed class SalesController : ControllerBase
             request.Items.Select(i => new CreateSaleItem(i.ProductId, i.Quantity)).ToList());
 
         var result = await _mediator.Send(command, ct);
-        return Ok(result);
+        return Created($"/api/sales/{result.SaleId}", result); 
     }
 
     [HttpPost("{id:guid}/cancel")]

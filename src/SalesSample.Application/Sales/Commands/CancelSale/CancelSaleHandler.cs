@@ -24,7 +24,7 @@ public sealed class CancelSaleHandler : IRequestHandler<CancelSaleCommand>
     public async Task Handle(CancelSaleCommand command, CancellationToken cancellationToken)
     {
         var sale = await _saleRepository.GetByIdAsync(command.SaleId, cancellationToken)
-            ?? throw new DomainException($"Sale {command.SaleId} not found.");
+            ?? throw new NotFoundException($"Sale {command.SaleId} not found.");
         
         _saleService.CancelSale(sale); // Dispara SaleCancelledEvent
 

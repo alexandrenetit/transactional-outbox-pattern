@@ -34,10 +34,10 @@ public sealed class CreateSaleHandler : IRequestHandler<CreateSaleCommand, Creat
         CreateSaleCommand command, CancellationToken cancellationToken)
     {
         var customer = await _customerRepository.GetByIdAsync(command.CustomerId, cancellationToken)
-                       ?? throw new DomainException($"Customer {command.CustomerId} not fount.");
+                       ?? throw new NotFoundException($"Customer {command.CustomerId} not fount.");
         
         var branch = await _branchRepository.GetByIdAsync(command.BranchId, cancellationToken)
-                 ?? throw new DomainException($"Branch {command.BranchId} not fount.");
+                 ?? throw new NotFoundException($"Branch {command.BranchId} not fount.");
 
         var productsIds = command.Items.Select((i => i.ProductId)).ToList();
         var products = await _productRepository.GetByIdsAsync(productsIds, cancellationToken);
@@ -45,7 +45,7 @@ public sealed class CreateSaleHandler : IRequestHandler<CreateSaleCommand, Creat
         var items = command.Items.Select(i =>
             {
                 var product = products.FirstOrDefault(p => p.Id == i.ProductId) 
-                    ?? throw new DomainException($"Product {i.ProductId} not fount.");
+                    ?? throw new NotFoundException($"Product {i.ProductId} not fount.");
                 return (product, i.Quantity);
             });
 

@@ -13,7 +13,7 @@ public sealed class GetSaleHandler : IRequestHandler<GetSaleQuery, GetSaleResult
     public async Task<GetSaleResult> Handle(GetSaleQuery query, CancellationToken cancellationToken)
     {
         var sale = await _saleRepository.GetByIdAsync(query.SaleId, cancellationToken)
-                   ?? throw new DomainException($"Sale {query.SaleId} not found.");
+                   ?? throw new NotFoundException($"Sale {query.SaleId} not found.");
 
         return new GetSaleResult(
             sale.Id,
