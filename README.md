@@ -2,7 +2,7 @@
 
 API backend em **.NET 10** que implementa uma **arquitetura em camadas (Clean Architecture)**, **DDD**, **CQRS com MediatR** e o padrão **Transactional Outbox** para publicar eventos no **Kafka** de forma confiável — com **consumidor idempotente (Inbox)** e **observabilidade completa** (traces, métricas e logs) via **OpenTelemetry**.
 
-> Projeto de estudo/portfólio construído do zero, simulando um sistema de vendas do agronegócio (o mesmo domínio de plataformas de dados para crédito rural e monitoramento de safras).
+> Projeto de estudo/portfólio construído do zero, simulando um sistema de vendas (o mesmo domínio de plataformas de dados para crédito).
 
 ---
 
