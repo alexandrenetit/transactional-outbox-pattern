@@ -1,8 +1,8 @@
 # SalesSample — API de Vendas com Clean Architecture, DDD, CQRS e Transactional Outbox
 
-API backend em **.NET 10** que implementa uma **arquitetura em camadas (Clean Architecture)**, **DDD**, **CQRS com MediatR** e o padrão **Transactional Outbox** para publicar eventos no **Kafka** de forma confiável — com **consumidor idempotente (Inbox)** e **observabilidade completa** (traces, métricas e logs) via **OpenTelemetry**.
+API backend em **.NET 10** que implementa **Clean Architecture + DDD + CQRS (MediatR)** e **elimina o dual-write problem** — o maior fantasma de sistemas com **EDA (Event-Driven Architecture)** — usando **Transactional Outbox**: os eventos chegam ao **Kafka** sem nunca serem perdidos, com **consumidor idempotente (Inbox)** e **observabilidade completa** via **OpenTelemetry**.
 
-> Projeto de estudo/portfólio construído do zero, simulando um sistema de vendas do agronegócio (o mesmo domínio de plataformas de dados para crédito rural e monitoramento de safras).
+> Projeto de estudo/portfólio construído do zero, simulando um sistema de vendas (o mesmo domínio de plataformas de dados para crédito).
 
 ---
 
@@ -11,6 +11,47 @@ API backend em **.NET 10** que implementa uma **arquitetura em camadas (Clean Ar
 O sistema recebe vendas via API REST, persiste no **PostgreSQL** e publica eventos de domínio no **Kafka** sem perder mensagens — mesmo que o broker esteja fora do ar no momento da escrita. A garantia vem do padrão **Transactional Outbox**: o evento é gravado na **mesma transação** da venda e um worker o entrega ao Kafka depois.
 
 O consumidor é **idempotente** (padrão **Inbox**): mensagens duplicadas — inevitáveis em entrega *at-least-once* — são detectadas e ignoradas.
+
+---
+
+## 🚨 O FANTASMA DAS ARQUITETURAS ORIENTADAS A EVENTOS: **DUAL WRITE**
+
+> **Se você ler uma única seção deste README, leia esta.**
+
+Em qualquer sistema com **EDA (Event-Driven Architecture)**, toda operação que muda estado precisa fazer **DUAS escritas**:
+
+1. **no banco de dados** — persistir o estado;
+2. **no broker de mensagens** (Kafka / RabbitMQ / SQS) — publicar o evento.
+
+O problema é fatal: **Postgres e Kafka são sistemas separados e NÃO compartilham transação.** Não existe `BEGIN ... COMMIT` que abranja os dois. Esse é o **dual-write problem** — o maior fantasma de sistemas com EDA, porque **não aparece em teste feliz** e gera inconsistência silenciosa em produção:
+
+| Cenário | Resultado |
+|---|---|
+| Salva no banco ✅ → **Kafka cai** ❌ | Venda existe, **evento perdido** — nenhum consumidor nunca fica sabendo |
+| Publica no Kafka ✅ → **banco falha** ❌ | Evento publicado, **venda não existe** — consumidores agem sobre um fantasma |
+| Processo morre **entre** as duas escritas | Estado e evento **divergem para sempre** |
+
+E **não dá pra resolver com retry**, porque não existe ordem "segura": retry de um lado duplica, retry do outro perde. O dual-write é uma armadilha estrutural, não um bug de código.
+
+## ✅ O que o Transactional Outbox faz: mata o dual-write
+
+O Transactional Outbox **transforma duas escritas em UMA só**, no mesmo banco:
+
+> O evento **não vai para o Kafka na hora da operação**. Ele é gravado numa tabela **`OutboxMessages`**, **na mesma transação** que grava a venda. É o Postgres quem garante a atomicidade — e depois um **worker** entrega o evento ao Kafka.
+
+```
+❌ SEM Outbox (dual write)               ✅ COM Outbox (uma escrita, atômica)
+   BEGIN                                    BEGIN
+     INSERT Sale                              INSERT Sale
+   COMMIT                                   INSERT OutboxMessages
+   ─────── ⚠️ gap entre sistemas ─────────    COMMIT   ← um só sistema, atômico
+   PRODUCE Kafka
+                                          worker → Kafka (depois)
+```
+
+**Resultado:** ou a venda **e** o evento existem, ou **nenhum** dos dois. O Kafka pode ficar fora do ar por horas — o evento espera na tabela e é entregue quando voltar. **"Evento perdido" deixa de ser uma possibilidade.**
+
+> **Frase de entrevista:** *"O Outbox troca uma escrita em dois sistemas por uma escrita atômica em um sistema; o broker passa a ser entregue por um worker, com at-least-once. O dual-write vira um não-problema."*
 
 ---
 
@@ -35,16 +76,16 @@ Clean Architecture com a **regra de dependência**: as camadas internas não con
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        SalesSample.WebApi                    │
-│   Controllers · ProblemDetails · OpenTelemetry · Swagger     │
+│                        SalesSample.WebApi                   │
+│   Controllers · ProblemDetails · OpenTelemetry · Swagger    │
 └───────────────────────────┬─────────────────────────────────┘
                             │ depende de
 ┌───────────────────────────▼─────────────────────────────────┐
-│                        SalesSample.Domain                    │
-│  Entidades · Value Objects · Eventos · Repositórios (portas) │
-│  Specifications · Strategies · Domain Service                │
-│                                                              │
-│           ⚠️ ZERO dependência de projeto                     │
+│                        SalesSample.Domain                   │
+│  Entidades · Value Objects · Eventos · Repositórios (portas)│
+│  Specifications · Strategies · Domain Service               │
+│                                                             │
+│           ⚠️ ZERO dependência de projeto                   │
 └───────────────────────────▲─────────────────────────────────┘
                             │ implementa / usa
         ┌───────────────────┴───────────────────┐
