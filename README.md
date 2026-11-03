@@ -51,8 +51,6 @@ O Transactional Outbox **transforma duas escritas em UMA só**, no mesmo banco:
 
 **Resultado:** ou a venda **e** o evento existem, ou **nenhum** dos dois. O Kafka pode ficar fora do ar por horas — o evento espera na tabela e é entregue quando voltar. **"Evento perdido" deixa de ser uma possibilidade.**
 
-> **Frase de entrevista:** *"O Outbox troca uma escrita em dois sistemas por uma escrita atômica em um sistema; o broker passa a ser entregue por um worker, com at-least-once. O dual-write vira um não-problema."*
-
 ---
 
 ## 🧱 Stack
