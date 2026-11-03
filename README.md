@@ -83,7 +83,7 @@ Clean Architecture com a **regra de dependência**: as camadas internas não con
 │  Entidades · Value Objects · Eventos · Repositórios (portas)│
 │  Specifications · Strategies · Domain Service               │
 │                                                             │
-│           ⚠️ ZERO dependência de projeto                   │
+│              ZERO dependência de projeto                    │
 └───────────────────────────▲─────────────────────────────────┘
                             │ implementa / usa
         ┌───────────────────┴───────────────────┐
