@@ -1,10 +1,11 @@
-using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using SalesSample.Application;
 using SalesSample.Infrastructure;
-using SalesSample.WebApi.Middleware;   
+using SalesSample.WebApi.Middleware;
+using Serilog;
+using Serilog.Sinks.Grafana.Loki;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,13 +13,13 @@ builder.Services.AddControllers();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-builder.Services.AddSwaggerGen();   // gera o documento OpenAPI
+builder.Services.AddSwaggerGen();
 
-builder.Services.AddProblemDetails();                                  // ← registra o serviço
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();        // ← registra o handler
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
-// ---- Observabilidade: OpenTelemetry -> OTLP -> Datadog Agent ----
-var otlp = new Uri(builder.Configuration["Telemetry:OtlpEndpoint"] ?? "http://localhost:4319");
+// ---- Observabilidade: OpenTelemetry (traces + métricas) ----
+var otlp = new Uri(builder.Configuration["Telemetry:OtlpEndpoint"] ?? "http://localhost:4320");
 
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(r => r
@@ -26,25 +27,30 @@ builder.Services.AddOpenTelemetry()
     .WithTracing(t => t
         .AddAspNetCoreInstrumentation()   // trace das requests HTTP
         .AddHttpClientInstrumentation()   // trace das chamadas HTTP de saída
-        .AddOtlpExporter(o => o.Endpoint = otlp))
+        .AddOtlpExporter(o => o.Endpoint = otlp))   // OTLP -> Tempo
     .WithMetrics(m => m
         .AddAspNetCoreInstrumentation()   // métricas HTTP
         .AddHttpClientInstrumentation()
         .AddRuntimeInstrumentation()      // GC, CPU, memória
-        .AddPrometheusExporter());
+        .AddPrometheusExporter());        // /metrics -> Prometheus
 
-// Logs também via OTLP
-builder.Logging.AddOpenTelemetry(logging =>
-    logging.AddOtlpExporter(o => o.Endpoint = otlp));
+// ---- Logs: Serilog -> console + Loki ----
+builder.Host.UseSerilog((context, cfg) => cfg
+    .ReadFrom.Configuration(context.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.GrafanaLoki(
+        context.Configuration["Loki:Url"] ?? "http://localhost:3101",
+        new[] { new LokiLabel { Key = "app", Value = "salessample" } }));
 
 var app = builder.Build();
 
-app.UseSwagger();       // expõe /swagger/v1/swagger.json
-app.UseSwaggerUI();     // expõe a UI em /swagger
+app.UseSwagger();       // /swagger/v1/swagger.json
+app.UseSwaggerUI();     // UI em /swagger
 
-app.UseExceptionHandler();   // ← captura exceção e vira ProblemDetails
+app.UseExceptionHandler();   // exceção -> ProblemDetails
 
 app.MapControllers();
-app.MapPrometheusScrapingEndpoint();   // expõe /metrics
+app.MapPrometheusScrapingEndpoint();   // /metrics
 
 app.Run();

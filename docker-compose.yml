@@ -53,6 +53,13 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: salessample-loki
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    ports:
+      - "3101:3100"   # 3100 já é do medvie-loki
+
   grafana:
     image: grafana/grafana:10.4.2
     container_name: salessample-grafana
@@ -68,6 +75,7 @@ services:
     depends_on:
       - prometheus
       - tempo
+      - loki
 
   postgres:
     image: postgres:17
@@ -84,7 +92,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U sales -d salessample"]
       interval: 5s
       timeout: 5s
-      retries: 10  
+      retries: 10
 
 volumes:
   kafka_data:
