@@ -13,7 +13,7 @@ public sealed class CreateSaleHandler : IRequestHandler<CreateSaleCommand, Creat
     private readonly IProductRepository _productRepository;
     private readonly ISaleRepository _saleRepository;
     private readonly IUnitOfWork _unitOfWork;
-    
+
     public CreateSaleHandler(
         ISaleService saleService,
         ICustomerRepository customerRepository,
@@ -34,20 +34,22 @@ public sealed class CreateSaleHandler : IRequestHandler<CreateSaleCommand, Creat
         CreateSaleCommand command, CancellationToken cancellationToken)
     {
         var customer = await _customerRepository.GetByIdAsync(command.CustomerId, cancellationToken)
-                       ?? throw new NotFoundException($"Customer {command.CustomerId} not fount.");
-        
-        var branch = await _branchRepository.GetByIdAsync(command.BranchId, cancellationToken)
-                 ?? throw new NotFoundException($"Branch {command.BranchId} not fount.");
+                       ?? throw new NotFoundException($"Customer {command.CustomerId} not found.");
 
-        var productsIds = command.Items.Select((i => i.ProductId)).ToList();
+        var branch = await _branchRepository.GetByIdAsync(command.BranchId, cancellationToken)
+                 ?? throw new NotFoundException($"Branch {command.BranchId} not found.");
+
+        var productsIds = command.Items.Select(i => i.ProductId).ToList();
         var products = await _productRepository.GetByIdsAsync(productsIds, cancellationToken);
 
-        var items = command.Items.Select(i =>
+        var items = command.Items
+            .Select(i =>
             {
-                var product = products.FirstOrDefault(p => p.Id == i.ProductId) 
-                    ?? throw new NotFoundException($"Product {i.ProductId} not fount.");
+                var product = products.FirstOrDefault(p => p.Id == i.ProductId)
+                    ?? throw new NotFoundException($"Product {i.ProductId} not found.");
                 return (product, i.Quantity);
-            });
+            })
+            .ToList();
 
         var sale = _saleService.CreateSale(customer, branch, command.SaleNumber, items);
 
@@ -57,4 +59,3 @@ public sealed class CreateSaleHandler : IRequestHandler<CreateSaleCommand, Creat
         return new CreateSaleResult(sale.Id, sale.SaleNumber, sale.TotalAmount.Amount);
     }
 }
-
