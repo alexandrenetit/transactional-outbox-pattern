@@ -1,0 +1,8 @@
+{
+  "stryker-config": {
+    "project": "src/SalesSample.Domain/SalesSample.Domain.csproj",
+    "test-projects": [ "tests/SalesSample.UnitTests/SalesSample.UnitTests.csproj" ],
+    "reporters": [ "html", "cleartext", "progress" ],
+    "thresholds": { "high": 80, "low": 60, "break": 50 }
+  }
+}

@@ -15,7 +15,11 @@ public static class DependencyInjection
         this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDbContext<SalesDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"),
+                npgsql => npgsql.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(10),
+                    errorCodesToAdd: null)));
 
         services.AddScoped<ISaleRepository, SaleRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
@@ -28,7 +32,11 @@ public static class DependencyInjection
         {
             var config = new ProducerConfig
             {
-                BootstrapServers = configuration["Kafka:BootstrapServers"]
+                BootstrapServers = configuration["Kafka:BootstrapServers"],
+                EnableIdempotence = true,       // retry sem gerar duplicata (PID + sequence)
+                Acks = Acks.All,                // espera todas as réplicas in-sync
+                MessageSendMaxRetries = 10,
+                RetryBackoffMs = 500
             };
 
             return new ProducerBuilder<string, string>(config).Build();
