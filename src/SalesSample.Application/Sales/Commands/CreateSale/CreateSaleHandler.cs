@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using SalesSample.Application.Common.Telemetry;
 using SalesSample.Domain.Exceptions;
 using SalesSample.Domain.Repositories;
 using SalesSample.Domain.Services;
@@ -55,6 +56,8 @@ public sealed class CreateSaleHandler : IRequestHandler<CreateSaleCommand, Creat
 
         await _saleRepository.AddAsync(sale, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        
+        SalesMetrics.SaleCreated();   // ← métrica de negócio
 
         return new CreateSaleResult(sale.Id, sale.SaleNumber, sale.TotalAmount.Amount);
     }
