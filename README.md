@@ -351,13 +351,16 @@ Estratégia em **pirâmide**:
 |---|---|---|---|
 | **Unitário** | A regra está certa, isolada? | xunit.v3 · Moq · Bogus · Shouldly | ✅ 35 testes |
 | **Integração** | Funciona com banco real? | Testcontainers (Postgres) · `IClassFixture` | ✅ 3 testes |
-| **API** | A requisição HTTP inteira funciona? | `WebApplicationFactory` | 🔄 |
+| **API** | A requisição HTTP inteira funciona? | `WebApplicationFactory` + Testcontainers | ✅ 7 testes |
 | **Mutação** | Meus testes pegam erro? | Stryker.NET | ⏸️ aguardando suporte a MTP |
+
+**Total: 45 testes** (35 unitários + 10 de integração/API).
 
 **Cobertura atual:**
 - Domínio: `Money`, `Sale` (invariantes), `SaleItem`, `StandardDiscountStrategy` (bordas 3/4/9/10/20/21)
 - Application: `CreateSaleHandler` (Moq), `CreateSaleValidator` (FluentValidation + Shouldly)
 - Integração: atomicidade do Outbox, não-duplicação, **rollback** (constraint violada → nenhum evento vaza)
+- **API:** POST `201` + `Location`, GET `200`/`404`, cancel `204`, cancel 2x `409`, payload inválido `400`, `/health` `200` — API em memória (`WebApplicationFactory`) + **Postgres real** (Testcontainers)
 - Padrão AAA em todos os testes; `DisplayName` legível; Bogus com semente fixa (determinístico)
 
 > **Mutação:** o Stryker.NET 5.0 ainda não suporta `Microsoft.Testing.Platform` ([issue #3094](https://github.com/stryker-mutator/stryker-net/issues/3094)). O conceito é demonstrado manualmente: quebrar a borda do desconto (`>= 4` → `> 4`) faz o teste falhar.
@@ -380,7 +383,6 @@ Estratégia em **pirâmide**:
 ## 🚧 Próximos passos
 
 - [ ] CI/CD (GitHub Actions: build, testes, cobertura)
-- [ ] Testes de API com `WebApplicationFactory`
 - [ ] Teste de mutação (quando o Stryker suportar MTP)
 - [ ] Logs com `traceId` em cada linha (`Serilog.Enrichers.Span`)
 - [ ] Dashboards no Grafana + alertas (Alertmanager)
@@ -416,7 +418,7 @@ SalesSample/
 │       └── Dockerfile         multi-stage (build + runtime)
 ├── tests/
 │   ├── SalesSample.UnitTests/          35 testes
-│   └── SalesSample.IntegrationTests/   3 testes (Testcontainers)
+│   └── SalesSample.IntegrationTests/   10 testes (Outbox + API)
 ├── carga_inicial.sql
 └── docker-compose.yml
 ```
